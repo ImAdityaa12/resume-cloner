@@ -17,6 +17,7 @@ function initials(name: string): string {
 export default function ResumeCloner({ users, template }: { users: User[]; template: Template | null }) {
   const router = useRouter();
   const [selectedId, setSelectedId] = useState<number | null>(users[0]?.id ?? null);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [notice, setNotice] = useState<{ kind: "ok" | "err"; text: string } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -70,13 +71,21 @@ export default function ResumeCloner({ users, template }: { users: User[]; templ
   return (
     <div className="flex h-dvh flex-col bg-[#f4f5f7] text-[#18181b]">
       {/* Top bar */}
-      <header className="flex h-14 shrink-0 items-center justify-between border-b border-[#e6e8ec] bg-white px-5">
-        <div className="flex items-center gap-2.5">
-          <div className="flex h-7 w-7 items-center justify-center rounded-md bg-[#2f5496] text-[13px] font-bold text-white">
+      <header className="flex h-14 shrink-0 items-center justify-between border-b border-[#e6e8ec] bg-white px-3 sm:px-5">
+        <div className="flex min-w-0 items-center gap-2.5">
+          <button
+            type="button"
+            onClick={() => setSidebarOpen(true)}
+            aria-label="Open candidates menu"
+            className="-ml-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-[#52525b] transition-colors hover:bg-[#f4f5f7] lg:hidden"
+          >
+            <MenuIcon />
+          </button>
+          <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-[#2f5496] text-[13px] font-bold text-white">
             R
           </div>
-          <span className="text-[15px] font-semibold tracking-tight">Resume Cloner</span>
-          <span className="ml-1 rounded-full bg-[#eef2fb] px-2 py-0.5 text-[11px] font-medium text-[#2f5496]">
+          <span className="truncate text-[15px] font-semibold tracking-tight">Resume Cloner</span>
+          <span className="ml-1 hidden shrink-0 rounded-full bg-[#eef2fb] px-2 py-0.5 text-[11px] font-medium text-[#2f5496] sm:inline-block">
             Neon Postgres
           </span>
         </div>
@@ -86,9 +95,23 @@ export default function ResumeCloner({ users, template }: { users: User[]; templ
         </div>
       </header>
 
-      <div className="flex flex-1 overflow-hidden">
-        {/* Sidebar */}
-        <aside className="flex w-80 shrink-0 flex-col border-r border-[#e6e8ec] bg-white">
+      <div className="relative flex flex-1 overflow-hidden">
+        {/* Backdrop (mobile only, when drawer is open) */}
+        {sidebarOpen && (
+          <button
+            type="button"
+            aria-label="Close menu"
+            onClick={() => setSidebarOpen(false)}
+            className="absolute inset-0 z-30 bg-black/30 lg:hidden"
+          />
+        )}
+
+        {/* Sidebar — off-canvas drawer on mobile, static column on desktop */}
+        <aside
+          className={`absolute inset-y-0 left-0 z-40 flex w-80 max-w-[85vw] shrink-0 flex-col border-r border-[#e6e8ec] bg-white transition-transform duration-200 ease-out lg:static lg:z-auto lg:max-w-none lg:translate-x-0 lg:shadow-none ${
+            sidebarOpen ? "translate-x-0 shadow-xl" : "-translate-x-full"
+          }`}
+        >
           <div className="flex items-center justify-between px-5 pb-2 pt-4">
             <h2 className="text-[11px] font-semibold uppercase tracking-wider text-[#71717a]">Candidates</h2>
             <span className="text-[11px] tabular-nums text-[#a1a1aa]">{users.length}</span>
@@ -100,7 +123,10 @@ export default function ResumeCloner({ users, template }: { users: User[]; templ
               return (
                 <button
                   key={u.id}
-                  onClick={() => setSelectedId(u.id)}
+                  onClick={() => {
+                    setSelectedId(u.id);
+                    setSidebarOpen(false);
+                  }}
                   className={`group mb-1 flex w-full items-center gap-3 rounded-lg px-2.5 py-2.5 text-left transition-colors ${
                     active ? "bg-[#eef2fb] ring-1 ring-[#2f5496]/20" : "hover:bg-[#f4f5f7]"
                   }`}
@@ -166,38 +192,40 @@ export default function ResumeCloner({ users, template }: { users: User[]; templ
 
         {/* Preview pane */}
         <main className="flex flex-1 flex-col overflow-hidden">
-          <div className="flex h-14 shrink-0 items-center justify-between border-b border-[#e6e8ec] bg-white/70 px-6 backdrop-blur">
+          <div className="flex h-14 shrink-0 items-center justify-between gap-2 border-b border-[#e6e8ec] bg-white/70 px-4 backdrop-blur sm:px-6">
             <div className="min-w-0">
               <div className="truncate text-[14px] font-semibold tracking-tight">
                 {selectedUser ? selectedUser.full_name : "—"}
               </div>
               <div className="truncate text-[12px] text-[#71717a]">{selectedUser?.job_title}</div>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex shrink-0 items-center gap-2">
               <button
                 onClick={handleDownloadHtml}
                 disabled={!template || !selectedUser}
+                aria-label="Download HTML"
                 className="flex items-center gap-1.5 rounded-md border border-[#e6e8ec] bg-white px-3 py-2 text-[12.5px] font-medium text-[#18181b] transition-colors hover:bg-[#f4f5f7] disabled:opacity-50"
               >
                 <CodeIcon />
-                Download HTML
+                <span className="hidden sm:inline">Download HTML</span>
               </button>
               <button
                 onClick={handleExportPdf}
                 disabled={!template || !selectedUser}
+                aria-label="Export PDF"
                 className="flex items-center gap-1.5 rounded-md bg-[#18181b] px-3.5 py-2 text-[12.5px] font-semibold text-white transition-colors hover:bg-black disabled:opacity-50"
               >
                 <DownloadIcon />
-                Export PDF
+                <span className="hidden sm:inline">Export PDF</span>
               </button>
             </div>
           </div>
 
-          <div className="r-scroll flex-1 overflow-auto p-8">
+          <div className="r-scroll flex-1 overflow-auto p-4 sm:p-6 lg:p-8">
             {/* Inject the canonical resume stylesheet once. */}
             <style dangerouslySetInnerHTML={{ __html: RESUME_CSS }} />
             {template && selectedUser ? (
-              <div className="print-area mx-auto w-fit rounded-md bg-white shadow-[0_1px_3px_rgba(0,0,0,0.06),0_12px_32px_-12px_rgba(0,0,0,0.18)]">
+              <div className="print-area mx-auto w-full max-w-[816px] rounded-md bg-white shadow-[0_1px_3px_rgba(0,0,0,0.06),0_12px_32px_-12px_rgba(0,0,0,0.18)]">
                 <div dangerouslySetInnerHTML={{ __html: filledHtml }} />
               </div>
             ) : (
@@ -212,7 +240,7 @@ export default function ResumeCloner({ users, template }: { users: User[]; templ
 
 function EmptyState({ onUpload, hasTemplate }: { onUpload: () => void; hasTemplate: boolean }) {
   return (
-    <div className="mx-auto flex max-w-sm flex-col items-center pt-24 text-center">
+    <div className="mx-auto flex max-w-sm flex-col items-center pt-16 text-center sm:pt-24">
       <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-[#eef2fb]">
         <PdfIcon />
       </div>
@@ -235,6 +263,15 @@ function EmptyState({ onUpload, hasTemplate }: { onUpload: () => void; hasTempla
 }
 
 /* ---- icons (inline, no dependency) ---- */
+function MenuIcon() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M3 6h18" />
+      <path d="M3 12h18" />
+      <path d="M3 18h18" />
+    </svg>
+  );
+}
 function PdfIcon() {
   return (
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#2f5496" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
